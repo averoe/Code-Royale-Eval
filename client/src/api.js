@@ -50,27 +50,44 @@ async function request(url, options = {}) {
   }
   
   console.log('API Request:', { url: `${API_BASE}${url}`, method, isGasBackend });
+  console.log('Request body type:', typeof config.body);
+  if (config.body && config.body instanceof FormData) {
+    console.log('FormData entries:');
+    for (let pair of config.body.entries()) {
+      console.log(`  ${pair[0]}: ${pair[1]}`);
+    }
+  }
   
   try {
     const response = await fetch(`${API_BASE}${url}`, config);
     console.log('API Response Status:', response.status);
+    console.log('API Response Headers:', {
+      'content-type': response.headers.get('content-type'),
+    });
     
     const text = await response.text();
-    console.log('API Response Text:', text.substring(0, 200));
+    console.log('API Response Text:', text.substring(0, 500));
     
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
       console.error('Failed to parse response as JSON:', text);
-      throw new Error('Invalid response from server');
+      throw new Error('Invalid response from server: ' + text.substring(0, 100));
     }
     
     console.log('API Response Data:', data);
     
-    if (!response.ok && data.status !== 'success') {
-      throw new Error(data.message || `HTTP ${response.status}: Something went wrong`);
+    // Check for error status in the response data
+    if (data && data.status === 'error') {
+      throw new Error(data.message || 'Server returned an error');
     }
+    
+    // Also check for HTTP errors
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${data.message || 'Server error'}`);
+    }
+    
     return data;
   } catch (error) {
     console.error('API Error Details:', error.message);

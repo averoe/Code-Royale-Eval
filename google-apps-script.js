@@ -91,7 +91,14 @@ function generateToken(data) {
   
   var headerEncoded = Utilities.base64Encode(JSON.stringify(header)).replace(/[=]/g, '');
   var payloadEncoded = Utilities.base64Encode(JSON.stringify(payload)).replace(/[=]/g, '');
-  var signature = Utilities.computeHmacSignature(Utilities.DigestAlgorithm.SHA_256, headerEncoded + '.' + payloadEncoded, JWT_SECRET);
+  
+  // Correct signature method: Utilities.computeHmacSignature(algorithm, key, value)
+  var signature = Utilities.computeHmacSignature(
+    Utilities.DigestAlgorithm.SHA_256,
+    JWT_SECRET,
+    headerEncoded + '.' + payloadEncoded
+  );
+  
   var signatureEncoded = Utilities.base64Encode(signature).replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   
   return headerEncoded + '.' + payloadEncoded + '.' + signatureEncoded;

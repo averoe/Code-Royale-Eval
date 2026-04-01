@@ -84,14 +84,19 @@ export default function Mentors({ showToast }) {
         </div>
       ) : (
         <div className="card-grid">
-          {mentors.map(mentor => (
-            <div key={mentor._id} className="card">
+          {mentors.map((mentor, index) => {
+            // Handle both GAS format (Name) and MongoDB format (name)
+            const mentorName = mentor.name || mentor.Name || 'Unknown';
+            const mentorKey = mentor._id || mentorName || index;
+            
+            return (
+            <div key={mentorKey} className="card">
               <div className="card-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
                   <div className="mentor-avatar" style={{ width: '48px', height: '48px', fontSize: '20px' }}>
-                    {mentor.name.charAt(0).toUpperCase()}
+                    {mentorName.charAt(0).toUpperCase()}
                   </div>
-                  <div className="card-title">{mentor.name}</div>
+                  <div className="card-title">{mentorName}</div>
                 </div>
               </div>
 
@@ -102,24 +107,29 @@ export default function Mentors({ showToast }) {
 
               {mentor.assignedTeams && mentor.assignedTeams.length > 0 && (
                 <div className="card-members" style={{ marginTop: 'var(--space-sm)' }}>
-                  {mentor.assignedTeams.map(team => (
-                    <span key={team._id} className="member-chip">
-                      {team.name}
-                    </span>
-                  ))}
+                  {mentor.assignedTeams.map((team, teamIndex) => {
+                    const teamName = team.name || team.Name || 'Unknown';
+                    const teamKey = team._id || teamName || teamIndex;
+                    return (
+                      <span key={teamKey} className="member-chip">
+                        {teamName}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
 
               <div className="card-footer">
                 <div></div>
                 <div className="card-actions">
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(mentor._id)}>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(mentorName)}>
                     <Trash2 size={14} /> Delete
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

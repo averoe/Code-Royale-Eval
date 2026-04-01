@@ -551,8 +551,41 @@ function submitScore(data) {
     return { status: 'error', message: 'Criteria data is required' };
   }
 
-  var mentorName = sanitizeSheetName(data.mentorName);
   var round = Number(data.round) || 0;
+  
+  // Check if team is shortlisted for this round
+  var roundsSheet = getOrCreateSheet('Rounds', ['RoundNumber', 'RoundName', 'Teams', 'CreatedAt']);
+  var lastRow = roundsSheet.getLastRow();
+  var isTeamShortlisted = false;
+  
+  if (lastRow > 1) {
+    var numbers = roundsSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < numbers.length; i++) {
+      if (Number(numbers[i][0]) === round) {
+        var teamsJson = roundsSheet.getRange(i + 2, 3, 1, 1).getValues()[0][0];
+        try {
+          var teamsList = JSON.parse(teamsJson);
+          if (teamsList && teamsList.includes(data.teamName)) {
+            isTeamShortlisted = true;
+            break;
+          }
+        } catch (e) {
+          // If teams list is empty or invalid, allow all teams
+          isTeamShortlisted = true;
+          break;
+        }
+      }
+    }
+  } else {
+    // No rounds configured, allow all teams
+    isTeamShortlisted = true;
+  }
+  
+  if (!isTeamShortlisted) {
+    return { status: 'error', message: 'Team is not shortlisted for this round' };
+  }
+
+  var mentorName = sanitizeSheetName(data.mentorName);
 
   var headers = [
     'Timestamp', 'Team Name', 'Domain', 'Lab Number', 'Round',

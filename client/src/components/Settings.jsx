@@ -122,7 +122,7 @@ export default function Settings() {
           {/* Team Selection */}
           <div style={{ marginBottom: 'var(--space-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-              <label className="form-label">Select Teams for this Round</label>
+              <label className="form-label">Select Teams to Shortlist for this Round</label>
               <button
                 type="button"
                 onClick={selectAllTeams}
@@ -148,6 +148,7 @@ export default function Settings() {
               padding: 'var(--space-md)',
               border: '1px solid #e0e0e0',
               borderRadius: '4px',
+              backgroundColor: '#fafafa',
             }}>
               {allTeams.map((team) => {
                 const teamName = team.Name || team.name;
@@ -164,6 +165,9 @@ export default function Settings() {
                 );
               })}
             </div>
+            <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
+              Only selected teams can be evaluated in this round
+            </p>
           </div>
 
           <button
@@ -195,7 +199,7 @@ export default function Settings() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
             gap: 'var(--space-lg)',
           }}>
             {rounds.map((round) => (
@@ -204,25 +208,69 @@ export default function Settings() {
                 borderRadius: '8px',
                 padding: 'var(--space-lg)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                border: '1px solid #e0e0e0',
               }}>
-                <h3>{round.roundName}</h3>
-                <p style={{ color: '#666', marginBottom: 'var(--space-md)' }}>
-                  Round #{round.roundNumber}
-                </p>
-                <div style={{ marginBottom: 'var(--space-md)' }}>
-                  <strong>Teams ({round.teams?.length || 0}):</strong>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 'var(--space-md)' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem 0' }}>{round.roundName}</h3>
+                    <p style={{ color: '#999', fontSize: '0.9rem', margin: 0 }}>
+                      Round #{round.roundNumber}
+                    </p>
+                  </div>
+                  {round.teams && round.teams.length > 0 && (
+                    <span style={{
+                      backgroundColor: '#e3f2fd',
+                      color: '#1976d2',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '16px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                    }}>
+                      {round.teams.length} teams
+                    </span>
+                  )}
+                </div>
+
+                <div style={{
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '6px',
+                  padding: 'var(--space-md)',
+                  marginTop: 'var(--space-md)',
+                }}>
+                  <strong style={{ fontSize: '0.9rem', color: '#333' }}>Shortlisted Teams:</strong>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', marginTop: '0.5rem' }}>
                     {round.teams && round.teams.length > 0 ? (
-                      <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                      }}>
                         {round.teams.map(team => (
-                          <li key={team} style={{ fontSize: '0.9rem', color: '#555' }}>{team}</li>
+                          <div key={team} style={{
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: 'white',
+                            borderRadius: '4px',
+                            fontSize: '0.9rem',
+                            color: '#333',
+                            border: '1px solid #e0e0e0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                          }}>
+                            <span style={{ color: '#4caf50', fontWeight: 'bold' }}>✓</span>
+                            {team}
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     ) : (
-                      <p style={{ fontSize: '0.9rem', color: '#999' }}>No teams assigned</p>
+                      <p style={{ fontSize: '0.9rem', color: '#999', margin: 0 }}>No teams shortlisted for this round</p>
                     )}
                   </div>
                 </div>
+
+                <p style={{ fontSize: '0.85rem', color: '#999', marginTop: 'var(--space-md)', marginBottom: 0 }}>
+                  Only shortlisted teams can be scored in this round
+                </p>
               </div>
             ))}
           </div>

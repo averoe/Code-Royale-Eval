@@ -20,9 +20,16 @@ export default function Login({ onLogin, showToast }) {
   async function loadMentors() {
     try {
       const data = await getMentorsList();
-      setMentors(data);
+      // Handle both formats - GAS returns Name, traditional returns name
+      const mentorList = data.map(m => ({
+        id: m.Name || m.name || m._id,
+        name: m.Name || m.name,
+        original: m
+      }));
+      setMentors(mentorList);
+      console.log('Loaded mentors:', mentorList);
     } catch (err) {
-      // mentors might not exist yet
+      console.error('Error loading mentors:', err);
       setMentors([]);
     }
   }
@@ -164,7 +171,7 @@ export default function Login({ onLogin, showToast }) {
             >
               <option value="">-- Choose your name --</option>
               {mentors.map(m => (
-                <option key={m._id} value={m._id}>{m.name}</option>
+                <option key={m.id} value={m.name}>{m.name}</option>
               ))}
             </select>
           </div>

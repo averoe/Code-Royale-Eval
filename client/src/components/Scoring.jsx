@@ -256,10 +256,26 @@ export default function Scoring({ showToast, user }) {
             onChange={e => setSelectedTeam(e.target.value)}
           >
             <option value="">-- Choose a team --</option>
-            {teams.map(t => (
-              <option key={t._id} value={t._id}>{t.name} — {t.domain}</option>
-            ))}
+            {teams.map(t => {
+              const teamName = t.Name || t.name;
+              // Filter teams based on current round's shortlist
+              const currentRound = rounds.find(r => r.roundNumber === round);
+              const isInRound = !currentRound || !currentRound.teams || currentRound.teams.length === 0 || currentRound.teams.includes(teamName);
+              
+              if (!isInRound) return null;
+              
+              return (
+                <option key={t._id || teamName} value={t._id || teamName}>
+                  {teamName} — {t.Domain || t.domain || 'N/A'}
+                </option>
+              );
+            })}
           </select>
+          {round && rounds.find(r => r.roundNumber === round)?.teams?.length > 0 && (
+            <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem', margin: 0 }}>
+              Showing {rounds.find(r => r.roundNumber === round)?.teams?.length || 0} shortlisted teams
+            </p>
+          )}
         </div>
         {!isMentor && (
           <div className="form-group" style={{ marginBottom: 0 }}>

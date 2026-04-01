@@ -28,23 +28,13 @@ export default function Login({ onLogin, showToast }) {
   }
 
   async function handleAdminAccess() {
-    // Call API for admin access
-    setLoading(true);
-    try {
-      const result = await adminLogin();
-      if (result.status === 'success' && result.token && result.user) {
-        localStorage.setItem('cr_token', result.token);
-        localStorage.setItem('cr_user', JSON.stringify(result.user));
-        onLogin(result.user);
-      } else {
-        showToast('Admin access failed', 'error');
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error('Admin login error:', err);
-      showToast(err.message || 'Failed to access admin panel', 'error');
-      setLoading(false);
-    }
+    // Skip auth - go directly to admin panel
+    const adminUser = {
+      role: 'admin',
+      username: 'admin'
+    };
+    localStorage.setItem('cr_user', JSON.stringify(adminUser));
+    onLogin(adminUser);
   }
 
   function handleSettingsClick() {

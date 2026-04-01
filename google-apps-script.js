@@ -81,7 +81,7 @@ function sanitizeSheetName(name) {
 // ======== TOKEN/JWT HELPERS ========
 
 function generateToken(data) {
-  // Simple JWT-like token (not cryptographically signed but valid for session)
+  // Create a simple JWT-like token using HMAC-SHA256
   var header = { alg: 'HS256', typ: 'JWT' };
   var payload = {
     data: data,
@@ -91,17 +91,22 @@ function generateToken(data) {
   
   var headerEncoded = Utilities.base64Encode(JSON.stringify(header)).replace(/[=]/g, '');
   var payloadEncoded = Utilities.base64Encode(JSON.stringify(payload)).replace(/[=]/g, '');
+  var signatureInput = headerEncoded + '.' + payloadEncoded;
   
-  // Correct signature method: Utilities.computeHmacSignature(algorithm, key, value)
-  var signature = Utilities.computeHmacSignature(
+  // Compute HMAC-SHA256: the key must be converted to bytes
+  var secretBytes = Utilities.newBlob(JWT_SECRET).getBytes();
+  var signatureBytes = Utilities.computeHmacSignature(
     Utilities.DigestAlgorithm.SHA_256,
-    JWT_SECRET,
-    headerEncoded + '.' + payloadEncoded
+    secretBytes,
+    signatureInput
   );
   
-  var signatureEncoded = Utilities.base64Encode(signature).replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  var signatureEncoded = Utilities.base64Encode(signatureBytes)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/[=]/g, '');
   
-  return headerEncoded + '.' + payloadEncoded + '.' + signatureEncoded;
+  return signatureInput + '.' + signatureEncoded;
 }
 
 function verifyToken(token) {

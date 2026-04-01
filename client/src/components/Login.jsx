@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { mentorLogin, getMentorsList } from '../api';
+import { adminLogin, mentorLogin, getMentorsList } from '../api';
 import {
   Users, LogIn, Swords, ChevronRight, Settings
 } from 'lucide-react';
@@ -29,14 +29,18 @@ export default function Login({ onLogin, showToast }) {
   }
 
   function handleAdminAccess() {
-    // Direct admin access without password
-    const adminUser = {
-      role: 'admin',
-      username: 'admin'
-    };
-    localStorage.setItem('cr_token', 'admin-token-' + Date.now());
-    localStorage.setItem('cr_user', JSON.stringify(adminUser));
-    onLogin(adminUser);
+    // Call API for admin access
+    setLoading(true);
+    adminLogin()
+      .then(result => {
+        localStorage.setItem('cr_token', result.token);
+        localStorage.setItem('cr_user', JSON.stringify(result.user));
+        onLogin(result.user);
+      })
+      .catch(err => {
+        showToast(err.message || 'Failed to access admin panel', 'error');
+        setLoading(false);
+      });
   }
 
   function handleSettingsClick() {

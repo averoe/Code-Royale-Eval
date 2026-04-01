@@ -40,6 +40,18 @@ async function request(url, options = {}) {
 }
 
 // Auth
+export const adminLogin = () => {
+  if (API_BASE.includes('script.google.com')) {
+    // Google Apps Script backend - no password needed
+    return request('', { 
+      method: 'POST', 
+      body: { action: 'adminLogin' } 
+    });
+  }
+  // Express backend
+  return request('/auth/admin/login', { method: 'POST', body: {} });
+};
+
 export const mentorLogin = (mentorId) => {
   if (API_BASE.includes('script.google.com')) {
     // Google Apps Script: mentorId is actually mentorName

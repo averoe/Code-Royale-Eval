@@ -15,10 +15,13 @@ function App() {
   const [toasts, setToasts] = useState([]);
   const [authLoading, setAuthLoading] = useState(true);
 
+  console.log('📱 App component mounted, user:', user, 'authLoading:', authLoading);
+
   useEffect(() => {
     // Check for existing session
     const savedUser = localStorage.getItem('cr_user');
     const savedToken = localStorage.getItem('cr_token');
+    console.log('Checking localStorage... savedUser:', !!savedUser, 'savedToken:', !!savedToken);
     if (savedUser && savedToken) {
       try {
         setUser(JSON.parse(savedUser));

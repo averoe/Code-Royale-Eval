@@ -1,15 +1,4 @@
 {
-  "root": "client",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "env": {
-    "VITE_API_URL": "@vite-api-url"
-  },
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/index.html",
-      "permanent": false
-    }
-  ]
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "client/dist"
 }

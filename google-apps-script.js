@@ -483,7 +483,10 @@ function getMentors() {
 
 function getMentorsList() {
   var mentors = getMentorsData();
-  return { status: 'success', data: mentors.map(function(m) { return { name: m.Name, Name: m.Name }; }) };
+  var result = { status: 'success', data: mentors.map(function(m) { return { name: m.Name, Name: m.Name }; }) };
+  // Log for debugging
+  Logger.log('getMentorsList called, returning: ' + JSON.stringify(result));
+  return result;
 }
 
 function addMentor(data) {
@@ -684,7 +687,7 @@ function getAllScores() {
 
   sheets.forEach(function(sheet) {
     var name = sheet.getName();
-    if (name === 'Teams' || name === 'Mentors' || name === 'Sheet1') return;
+    if (name === 'Teams' || name === 'Mentors' || name === 'Sheet1' || name === 'Rounds') return;
 
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) return;
@@ -732,7 +735,7 @@ function getLeaderboard(roundFilter) {
 
   sheets.forEach(function(sheet) {
     var name = sheet.getName();
-    if (name === 'Teams' || name === 'Mentors' || name === 'Sheet1') return;
+    if (name === 'Teams' || name === 'Mentors' || name === 'Sheet1' || name === 'Rounds') return;
 
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) return;

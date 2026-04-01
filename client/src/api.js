@@ -32,16 +32,21 @@ async function request(url, options = {}) {
     config.body = JSON.stringify(bodyObj);
   }
   
+  console.log('API Request:', { url: `${API_BASE}${url}`, method, isGasBackend });
+  
   try {
     const response = await fetch(`${API_BASE}${url}`, config);
+    console.log('API Response Status:', response.status);
+    
     const data = await response.json();
+    console.log('API Response Data:', data);
     
     if (!response.ok && data.status !== 'success') {
-      throw new Error(data.message || 'Something went wrong');
+      throw new Error(data.message || `HTTP ${response.status}: Something went wrong`);
     }
     return data;
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error Details:', error.message, error);
     throw error;
   }
 }

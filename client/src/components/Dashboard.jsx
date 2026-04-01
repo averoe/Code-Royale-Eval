@@ -26,14 +26,16 @@ export default function Dashboard() {
         getCombinedLeaderboard(),
       ]);
 
-      const round1 = scores.filter(s => s.round === 1).length;
-      const round2 = scores.filter(s => s.round === 2).length;
+      console.log('Dashboard data loaded:', { teams, mentors, scores, combined });
+
+      const round2 = scores.filter(s => s.round === 2 || s.round === '2').length;
+      const round3 = scores.filter(s => s.round === 3 || s.round === '3').length;
 
       setStats({
         teams: teams.length,
         mentors: mentors.length,
-        round1Scored: round1,
-        round2Scored: round2,
+        round1Scored: round2,
+        round2Scored: round3,
       });
 
       setTopTeams(combined.slice(0, 5));
@@ -84,14 +86,14 @@ export default function Dashboard() {
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
             <CheckCircle2 size={16} style={{ color: 'var(--accent-emerald)' }} />
-            <span className="stat-label" style={{ margin: 0 }}>Round 1 Evaluated</span>
+            <span className="stat-label" style={{ margin: 0 }}>Round 2 Evaluated</span>
           </div>
           <div className="stat-value emerald">{stats.round1Scored}</div>
         </div>
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
             <CheckCircle2 size={16} style={{ color: 'var(--accent-amber)' }} />
-            <span className="stat-label" style={{ margin: 0 }}>Round 2 Evaluated</span>
+            <span className="stat-label" style={{ margin: 0 }}>Round 3 Evaluated</span>
           </div>
           <div className="stat-value amber">{stats.round2Scored}</div>
         </div>

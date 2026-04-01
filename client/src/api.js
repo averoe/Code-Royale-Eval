@@ -1,6 +1,8 @@
 // Support both Google Apps Script and traditional Express backend
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+console.log('API_BASE loaded:', API_BASE);
+
 function getToken() {
   return localStorage.getItem('cr_token');
 }
@@ -221,11 +223,23 @@ export const getLeaderboard = (round = 'combined') => {
   return request(`/scores/leaderboard/${round}`);
 };
 
-export const getCombinedLeaderboard = () => {
-  if (API_BASE.includes('script.google.com')) {
-    return request('?action=leaderboard&round=combined');
+
+// Test endpoint - for debugging
+export const testConnection = async () => {
+  try {
+    console.log('Testing connection to:', API_BASE);
+    const response = await fetch(API_BASE + '?action=ping', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    console.log('Test response status:', response.status);
+    const data = await response.json();
+    console.log('Test response data:', data);
+    return data;
+  } catch (error) {
+    console.error('Test connection failed:', error.message);
+    throw error;
   }
-  return request('/scores/leaderboard-combined/all');
 };
 
 export const getScores = () => {

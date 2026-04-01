@@ -61,9 +61,9 @@ export default function Teams({ showToast }) {
     }
   }
 
-  async function handleAssignMentor(mentorId) {
+  async function handleAssignMentor(mentorName) {
     try {
-      await assignMentor(selectedTeam._id, mentorId);
+      await assignMentor(selectedTeam.name || selectedTeam.Name, mentorName);
       showToast(`Mentor assigned to ${selectedTeam.name}!`, 'success');
       setShowAssignModal(false);
       setSelectedTeam(null);
@@ -106,29 +106,37 @@ export default function Teams({ showToast }) {
         </div>
       ) : (
         <div className="card-grid">
-          {teams.map(team => (
-            <div key={team._id} className="card">
+          {teams.map((team, index) => {
+            // Handle both GAS format (Name, Mentor) and MongoDB format (_id, name, mentor)
+            const id = team._id || team.Name || index;
+            const name = team.name || team.Name || 'Unknown';
+            const domain = team.domain || team.Domain || 'Unknown';
+            const labNumber = team.labNumber || team.LabNumber || 'N/A';
+            const mentor = team.mentor || (team.Mentor ? { name: team.Mentor } : null);
+            
+            return (
+            <div key={id} className="card">
               <div className="card-header">
-                <div className="card-title">{team.name}</div>
+                <div className="card-title">{name}</div>
               </div>
 
               {/* Domain & Lab */}
               <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                 <span className="card-badge badge-cyan" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Building2 size={11} /> {team.domain}
+                  <Building2 size={11} /> {domain}
                 </span>
                 <span className="card-badge badge-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <MapPin size={11} /> Lab {team.labNumber}
+                  <MapPin size={11} /> Lab {labNumber}
                 </span>
               </div>
 
-              {team.mentor ? (
+              {mentor && mentor.name ? (
                 <div className="mentor-info">
                   <div className="mentor-avatar">
-                    {team.mentor.name.charAt(0).toUpperCase()}
+                    {mentor.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="mentor-details">
-                    <span className="mentor-name">{team.mentor.name}</span>
+                    <span className="mentor-name">{mentor.name}</span>
                     <span className="mentor-email">Assigned Mentor</span>
                   </div>
                 </div>
@@ -153,19 +161,20 @@ export default function Teams({ showToast }) {
               <div className="card-footer">
                 <button
                   className="btn btn-secondary btn-sm"
-                  onClick={() => { setSelectedTeam(team); setShowAssignModal(true); }}
+                  onClick={() => { setSelectedTeam({ ...team, name, id }); setShowAssignModal(true); }}
                 >
                   <UserPlus size={14} />
-                  {team.mentor ? 'Change Mentor' : 'Assign Mentor'}
+                  {mentor && mentor.name ? 'Change Mentor' : 'Assign Mentor'}
                 </button>
                 <div className="card-actions">
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(team._id)}>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(name)}>
                     <Trash2 size={14} /> Delete
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -225,7 +234,7 @@ export default function Teams({ showToast }) {
         <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Assign Mentor to {selectedTeam.name}</h3>
+              <h3 className="modal-title">Assign Mentor to {selectedTeam.name || selectedTeam.Name}</h3>
               <button className="modal-close" onClick={() => setShowAssignModal(false)}><X size={18} /></button>
             </div>
             {mentors.length === 0 ? (
@@ -236,28 +245,34 @@ export default function Teams({ showToast }) {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-                {mentors.map(mentor => (
-                  <div key={mentor._id}
+                {mentors.map((mentor, index) => {
+                  const mentorName = mentor.name || mentor.Name || 'Unknown';
+                  const mentorKey = mentor._id || mentorName || index;
+                  const isSelected = (selectedTeam.mentor?.name === mentorName) || (selectedTeam.Mentor === mentorName);
+                  
+                  return (
+                  <div key={mentorKey}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 'var(--space-md)',
                       padding: 'var(--space-md)',
-                      background: selectedTeam.mentor?._id === mentor._id ? 'var(--accent-violet-glow)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${selectedTeam.mentor?._id === mentor._id ? 'var(--border-active)' : 'var(--border-color)'}`,
+                      background: isSelected ? 'var(--accent-violet-glow)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${isSelected ? 'var(--border-active)' : 'var(--border-color)'}`,
                       borderRadius: 'var(--radius-md)',
                       cursor: 'pointer',
                       transition: 'all 150ms ease'
                     }}
-                    onClick={() => handleAssignMentor(mentor._id)}
+                    onClick={() => handleAssignMentor(mentorName)}
                   >
-                    <div className="mentor-avatar">{mentor.name.charAt(0).toUpperCase()}</div>
+                    <div className="mentor-avatar">{mentorName.charAt(0).toUpperCase()}</div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{mentor.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{mentorName}</div>
                     </div>
                     <span className="card-badge badge-cyan">{mentor.assignedTeams?.length || 0} teams</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

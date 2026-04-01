@@ -16,22 +16,37 @@ async function request(url, options = {}) {
   
   const config = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      // Don't send Authorization header to avoid CORS preflight
-    },
     ...options,
   };
   
-  if (config.body && typeof config.body === 'object') {
-    config.body = JSON.stringify(config.body);
-  }
-  
-  // Include token in body instead of headers for GAS backend
-  if (isGasBackend && token && config.body) {
-    const bodyObj = JSON.parse(config.body);
-    bodyObj.token = token;
-    config.body = JSON.stringify(bodyObj);
+  // For GAS backend, use FormData to avoid CORS preflight
+  if (isGasBackend) {
+    const formData = new FormData();
+    
+    if (config.body) {
+      const bodyObj = typeof config.body === 'string' ? JSON.parse(config.body) : config.body;
+      Object.keys(bodyObj).forEach(key => {
+        formData.append(key, bodyObj[key]);
+      });
+    }
+    
+    if (token) {
+      formData.append('token', token);
+    }
+    
+    config.body = formData;
+    // Don't set Content-Type header - let browser set it automatically for FormData
+    // This prevents CORS preflight requests
+    delete config.headers;
+  } else {
+    // Traditional backend uses JSON
+    config.headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (config.body && typeof config.body === 'object') {
+      config.body = JSON.stringify(config.body);
+    }
   }
   
   console.log('API Request:', { url: `${API_BASE}${url}`, method, isGasBackend });
@@ -40,7 +55,17 @@ async function request(url, options = {}) {
     const response = await fetch(`${API_BASE}${url}`, config);
     console.log('API Response Status:', response.status);
     
-    const data = await response.json();
+    const text = await response.text();
+    console.log('API Response Text:', text.substring(0, 200));
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error('Failed to parse response as JSON:', text);
+      throw new Error('Invalid response from server');
+    }
+    
     console.log('API Response Data:', data);
     
     if (!response.ok && data.status !== 'success') {
@@ -48,7 +73,7 @@ async function request(url, options = {}) {
     }
     return data;
   } catch (error) {
-    console.error('API Error Details:', error.message, error);
+    console.error('API Error Details:', error.message);
     throw error;
   }
 }
@@ -223,6 +248,12 @@ export const getLeaderboard = (round = 'combined') => {
   return request(`/scores/leaderboard/${round}`);
 };
 
+export const getCombinedLeaderboard = () => {
+  if (API_BASE.includes('script.google.com')) {
+    return request('?action=leaderboard&round=combined');
+  }
+  return request('/scores/leaderboard-combined/all');
+};
 
 // Test endpoint - for debugging
 export const testConnection = async () => {

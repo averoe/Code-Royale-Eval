@@ -58,8 +58,9 @@ function sheetToArray(sheet) {
 }
 
 function jsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+  var output = ContentService.createTextOutput(JSON.stringify(data));
+  output.setMimeType(ContentService.MimeType.JSON);
+  return output;
 }
 
 function cleanupDefaultSheet() {
@@ -163,16 +164,28 @@ function doGet(e) {
 
 // ======== OPTIONS HANDLER (CORS Preflight) ========
 
-function doOptions(e) {
-  return ContentService.createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT_PLAIN);
-}
-
 // ======== POST HANDLER ========
 
 function doPost(e) {
   try {
-    var data = JSON.parse(e.postData.contents);
+    // Handle both FormData and JSON payloads
+    var data = {};
+    
+    if (e.postData && e.postData.contents) {
+      try {
+        // Try to parse as JSON first
+        data = JSON.parse(e.postData.contents);
+      } catch (err) {
+        // If JSON fails, treat as FormData
+        if (e.parameter) {
+          data = e.parameter;
+        }
+      }
+    } else if (e.parameter) {
+      // FormData comes in e.parameter
+      data = e.parameter;
+    }
+    
     var action = data.action;
     var result;
 

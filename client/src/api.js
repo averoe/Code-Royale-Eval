@@ -151,11 +151,16 @@ export const getMentorsList = () => {
 };
 
 // Teams
-export const getTeams = () => {
+export const getTeams = async () => {
   if (API_BASE.includes('script.google.com')) {
-    return request('?action=teams');
+    const res = await request('', {
+      method: 'POST',
+      body: { action: 'teams' }
+    });
+    return res.data || [];
   }
-  return request('/teams');
+  const res = await request('/teams');
+  return res.data || [];
 };
 
 export const createTeam = (data) => {
@@ -210,11 +215,16 @@ export const getShortlistedTeams = () => {
 };
 
 // Mentors
-export const getMentors = () => {
+export const getMentors = async () => {
   if (API_BASE.includes('script.google.com')) {
-    return request('?action=mentors');
+    const res = await request('', {
+      method: 'POST',
+      body: { action: 'mentors' }
+    });
+    return res.data || [];
   }
-  return request('/mentors');
+  const res = await request('/mentors');
+  return res.data || [];
 };
 
 export const createMentor = (data) => {
@@ -260,16 +270,24 @@ export const deleteScore = (mentorName, teamName, round) => {
 
 export const getLeaderboard = (round = 'combined') => {
   if (API_BASE.includes('script.google.com')) {
-    return request(`?action=leaderboard&round=${round}`);
+    return request('', { 
+      method: 'POST',
+      body: { action: 'leaderboard', round: round }
+    });
   }
   return request(`/scores/leaderboard/${round}`);
 };
 
-export const getCombinedLeaderboard = () => {
+export const getCombinedLeaderboard = async () => {
   if (API_BASE.includes('script.google.com')) {
-    return request('?action=leaderboard&round=combined');
+    const res = await request('', {
+      method: 'POST',
+      body: { action: 'leaderboard', round: 'combined' }
+    });
+    return res.data || [];
   }
-  return request('/scores/leaderboard-combined/all');
+  const res = await request('/scores/leaderboard-combined/all');
+  return res.data || [];
 };
 
 // Test endpoint - for debugging
@@ -290,10 +308,15 @@ export const testConnection = async () => {
   }
 };
 
-export const getScores = () => {
+export const getScores = async () => {
   if (API_BASE.includes('script.google.com')) {
-    return request('?action=scores');
+    const res = await request('', {
+      method: 'POST',
+      body: { action: 'scores' }
+    });
+    return res.data || [];
   }
-  return request('/scores');
+  const res = await request('/scores');
+  return res.data || [];
 };
 

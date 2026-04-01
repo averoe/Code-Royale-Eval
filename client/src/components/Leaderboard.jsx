@@ -121,7 +121,7 @@ export default function Leaderboard({ showToast, user }) {
                 className={`round-tab ${view === 'shortlist-manager' ? 'active' : ''}`}
                 onClick={() => setView('shortlist-manager')}
               >
-                📋 Shortlist Manager
+                Shortlist Manager
               </button>
             </>
           )}

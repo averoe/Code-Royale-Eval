@@ -144,7 +144,10 @@ export const getMentorsList = () => {
   if (API_BASE.includes('script.google.com')) {
     return request('', { 
       method: 'POST', 
-      body: { action: 'mentors', method: 'GET' } 
+      body: { action: 'mentorsList' } 
+    }).then(res => {
+      // Ensure we return data in consistent format
+      return res.data || res || [];
     });
   }
   return request('/auth/mentors-list');

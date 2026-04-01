@@ -238,6 +238,10 @@ function doPost(e) {
         result = getShortlistedTeams();
         break;
 
+      case 'mentorsList':
+        result = getMentorsList();
+        break;
+
       case 'mentors':
         if (data.method === 'POST') {
           result = addMentor(data);

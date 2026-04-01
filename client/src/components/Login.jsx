@@ -19,15 +19,19 @@ export default function Login({ onLogin, showToast }) {
 
   async function loadMentors() {
     try {
-      const data = await getMentorsList();
+      const response = await getMentorsList();
+      // Extract data from response object
+      const mentorsList = (response.data || response || []);
+      
       // Handle both formats - GAS returns Name, traditional returns name
-      const mentorList = data.map(m => ({
-        id: m.Name || m.name || m._id,
-        name: m.Name || m.name,
+      const mentors = mentorsList.map(m => ({
+        id: m.Name || m.name || m._id || '',
+        name: m.Name || m.name || '',
         original: m
       }));
-      setMentors(mentorList);
-      console.log('Loaded mentors:', mentorList);
+      
+      console.log('Loaded mentors:', mentors);
+      setMentors(mentors);
     } catch (err) {
       console.error('Error loading mentors:', err);
       setMentors([]);

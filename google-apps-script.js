@@ -58,7 +58,8 @@ function sheetToArray(sheet) {
 }
 
 function jsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data));
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function cleanupDefaultSheet() {
@@ -67,6 +68,13 @@ function cleanupDefaultSheet() {
   if (def && def.getLastRow() === 0 && ss.getSheets().length > 1) {
     ss.deleteSheet(def);
   }
+}
+
+// ======== SANITIZATION HELPERS ========
+
+function sanitizeSheetName(name) {
+  // Replace invalid characters / \ ? * [ ] : with _
+  return name.toString().replace(/[\/\\?\*\[\]:\|]/g, '_');
 }
 
 // ======== TOKEN/JWT HELPERS ========
@@ -147,16 +155,16 @@ function doGet(e) {
         result = { status: 'error', message: 'Unknown action: ' + action };
     }
 
-    return addCorsHeaders(jsonResponse(result));
+    return jsonResponse(result);
   } catch (err) {
-    return addCorsHeaders(jsonResponse({ status: 'error', message: err.toString() }));
+    return jsonResponse({ status: 'error', message: err.toString() });
   }
 }
 
 // ======== OPTIONS HANDLER (CORS Preflight) ========
 
 function doOptions(e) {
-  return addCorsHeaders(ContentService.createTextOutput(''));
+  return jsonResponse({ status: 'ok' });
 }
 
 // ======== POST HANDLER ========
@@ -232,21 +240,10 @@ function doPost(e) {
         result = { status: 'error', message: 'Unknown action: ' + action };
     }
 
-    return addCorsHeaders(jsonResponse(result));
+    return jsonResponse(result);
   } catch (err) {
-    return addCorsHeaders(jsonResponse({ status: 'error', message: err.toString() }));
+    return jsonResponse({ status: 'error', message: err.toString() });
   }
-}
-
-// ======== CORS HEADERS ========
-
-function addCorsHeaders(output) {
-  return output
-    .addHeader('Access-Control-Allow-Origin', '*')
-    .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    .addHeader('Content-Type', 'application/json')
-    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ======== AUTH ========
@@ -341,10 +338,12 @@ function getTeams() {
 function addTeam(data) {
   var sheet = getOrCreateSheet('Teams', ['Name', 'Domain', 'LabNumber', 'Mentor', 'IsShortlisted', 'CreatedAt']);
 
-  // Check for duplicate name
+  // Check for duplicate name (normalize with trim and lowercase)
   var existing = getTeamsData();
+  var normalizedNewName = data.name.toString().trim().toLowerCase();
+  
   for (var i = 0; i < existing.length; i++) {
-    if (existing[i].Name.toString().toLowerCase() === data.name.toString().toLowerCase()) {
+    if (existing[i].Name.toString().trim().toLowerCase() === normalizedNewName) {
       return { status: 'error', message: 'Team name already exists' };
     }
   }
@@ -462,7 +461,7 @@ function deleteMentor(data) {
       mentorSheet.deleteRow(i + 2);
 
       // Also remove mentor from any assigned teams
-      var teamSheet = getOrCreateSheet('Teams', ['Name', 'Domain', 'LabNumber', 'Mentor', 'CreatedAt']);
+      var teamSheet = getOrCreateSheet('Teams', ['Name', 'Domain', 'LabNumber', 'Mentor', 'IsShortlisted', 'CreatedAt']);
       var teamLastRow = teamSheet.getLastRow();
       if (teamLastRow > 1) {
         var mentorCol = teamSheet.getRange(2, 4, teamLastRow - 1, 1).getValues();
@@ -473,9 +472,10 @@ function deleteMentor(data) {
         }
       }
 
-      // Delete mentor's score sheet if exists
+      // Delete mentor's score sheet if exists (use sanitized name)
+      var sanitizedName = sanitizeSheetName(data.name);
       var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var scoreSheet = ss.getSheetByName(data.name);
+      var scoreSheet = ss.getSheetByName(sanitizedName);
       if (scoreSheet && ss.getSheets().length > 1) {
         ss.deleteSheet(scoreSheet);
       }
@@ -489,7 +489,17 @@ function deleteMentor(data) {
 // ======== SCORES ========
 
 function submitScore(data) {
-  var mentorName = data.mentorName || 'Unknown';
+  // Validate required data
+  if (!data.mentorName) {
+    return { status: 'error', message: 'Mentor name is required' };
+  }
+  if (!data.criteria) {
+    return { status: 'error', message: 'Criteria data is required' };
+  }
+
+  var mentorName = sanitizeSheetName(data.mentorName);
+  var round = Number(data.round) || 0;
+
   var headers = [
     'Timestamp', 'Team Name', 'Domain', 'Lab Number', 'Round',
     'Innovation & Originality (/20)', 'Problem Definition (/15)',
@@ -516,7 +526,7 @@ function submitScore(data) {
     var teamCol = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
     var roundCol = sheet.getRange(2, 5, lastRow - 1, 1).getValues();
     for (var i = 0; i < teamCol.length; i++) {
-      if (teamCol[i][0] === data.teamName && roundCol[i][0] == data.round) {
+      if (teamCol[i][0] === data.teamName && Number(roundCol[i][0]) === round) {
         existingRow = i + 2;
         break;
       }
@@ -528,7 +538,7 @@ function submitScore(data) {
     data.teamName || '',
     data.domain || '',
     data.labNumber || '',
-    data.round || '',
+    round,
     data.criteria.innovationOriginality || 0,
     data.criteria.problemDefinition || 0,
     data.criteria.technicalImplementation || 0,
@@ -551,7 +561,8 @@ function submitScore(data) {
 }
 
 function deleteScore(data) {
-  var mentorName = data.mentorName;
+  var mentorName = sanitizeSheetName(data.mentorName);
+  var round = Number(data.round);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(mentorName);
   
@@ -566,7 +577,7 @@ function deleteScore(data) {
   var roundCol = sheet.getRange(2, 5, lastRow - 1, 1).getValues();
   
   for (var i = 0; i < teamCol.length; i++) {
-    if (teamCol[i][0] === data.teamName && roundCol[i][0] == data.round) {
+    if (teamCol[i][0] === data.teamName && Number(roundCol[i][0]) === round) {
       sheet.deleteRow(i + 2);
       return { status: 'success', message: 'Score deleted' };
     }

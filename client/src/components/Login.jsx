@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
-import { adminLogin, mentorLogin, getMentorsList } from '../api';
+import { mentorLogin, getMentorsList } from '../api';
 import {
-  Shield, Users, LogIn, Eye, EyeOff, Swords, ChevronRight
+  Users, LogIn, Swords, ChevronRight, Settings
 } from 'lucide-react';
 
 export default function Login({ onLogin, showToast }) {
-  const [mode, setMode] = useState(null); // null = choose, 'admin', 'mentor'
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState(null); // null = choose, 'mentor', 'admin'
   const [mentors, setMentors] = useState([]);
   const [selectedMentor, setSelectedMentor] = useState('');
   const [loading, setLoading] = useState(false);
+  const [adminClicks, setAdminClicks] = useState(0);
+  const [showAdminButton, setShowAdminButton] = useState(false);
 
   useEffect(() => {
     if (mode === 'mentor') {
@@ -29,22 +28,24 @@ export default function Login({ onLogin, showToast }) {
     }
   }
 
-  async function handleAdminLogin(e) {
-    e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      showToast('Please enter username and password', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const result = await adminLogin(username, password);
-      localStorage.setItem('cr_token', result.token);
-      localStorage.setItem('cr_user', JSON.stringify(result.user));
-      onLogin(result.user);
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setLoading(false);
+  function handleAdminAccess() {
+    // Direct admin access without password
+    const adminUser = {
+      role: 'admin',
+      username: 'admin'
+    };
+    localStorage.setItem('cr_token', 'admin-token-' + Date.now());
+    localStorage.setItem('cr_user', JSON.stringify(adminUser));
+    onLogin(adminUser);
+  }
+
+  function handleSettingsClick() {
+    setAdminClicks(prev => prev + 1);
+    setTimeout(() => setAdminClicks(0), 2000); // Reset after 2 seconds
+    
+    if (adminClicks >= 2) { // 3 total clicks
+      setShowAdminButton(true);
+      setAdminClicks(0);
     }
   }
 
@@ -71,6 +72,32 @@ export default function Login({ onLogin, showToast }) {
     return (
       <div className="login-page">
         <div className="login-bg-gradient" />
+        {/* Hidden settings button - top right */}
+        <button
+          className="admin-secret-btn"
+          onClick={handleSettingsClick}
+          title={showAdminButton ? 'Admin access unlocked' : 'Click multiple times...'}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            border: 'none',
+            background: showAdminButton ? 'rgba(168, 85, 247, 0.8)' : 'rgba(255, 255, 255, 0.1)',
+            color: showAdminButton ? '#ffffff' : 'rgba(255, 255, 255, 0.3)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.3s ease',
+            zIndex: 1000
+          }}
+        >
+          <Settings size={20} />
+        </button>
+
         <div className="login-container animate-in">
           <div className="login-logo">
             <div className="login-logo-icon">
@@ -81,16 +108,25 @@ export default function Login({ onLogin, showToast }) {
           </div>
 
           <div className="login-role-cards">
-            <div className="login-role-card" onClick={() => setMode('admin')}>
-              <div className="login-role-icon admin-icon">
-                <Shield size={28} />
+            {showAdminButton && (
+              <div 
+                className="login-role-card admin-secret-card"
+                onClick={handleAdminAccess}
+                style={{
+                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div className="login-role-icon" style={{ color: '#ffffff' }}>
+                  <Settings size={28} />
+                </div>
+                <div className="login-role-info">
+                  <h3 style={{ color: '#ffffff' }}>Admin</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.8)' }}>System administration</p>
+                </div>
+                <ChevronRight size={20} className="login-role-arrow" style={{ color: '#ffffff' }} />
               </div>
-              <div className="login-role-info">
-                <h3>Admin</h3>
-                <p>Manage teams, mentors & view results</p>
-              </div>
-              <ChevronRight size={20} className="login-role-arrow" />
-            </div>
+            )}
 
             <div className="login-role-card" onClick={() => setMode('mentor')}>
               <div className="login-role-icon mentor-icon">
@@ -105,69 +141,6 @@ export default function Login({ onLogin, showToast }) {
           </div>
 
           <p className="login-footer-text">Select your role to continue</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Admin login form
-  if (mode === 'admin') {
-    return (
-      <div className="login-page">
-        <div className="login-bg-gradient" />
-        <div className="login-container animate-in">
-          <div className="login-logo">
-            <div className="login-logo-icon">
-              <Shield size={28} />
-            </div>
-            <h1 className="login-title">Admin Login</h1>
-            <p className="login-subtitle">Enter your credentials to continue</p>
-          </div>
-
-          <form onSubmit={handleAdminLogin} className="login-form">
-            <div className="form-group">
-              <label className="form-label">Username</label>
-              <input
-                className="form-input"
-                placeholder="Enter admin username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="form-input"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  style={{ paddingRight: '44px' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center'
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-            <button className="btn btn-primary login-btn" type="submit" disabled={loading}>
-              <LogIn size={16} />
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <button className="login-back-btn" onClick={() => setMode(null)}>
-            ← Back to role selection
-          </button>
         </div>
       </div>
     );
@@ -233,3 +206,5 @@ export default function Login({ onLogin, showToast }) {
     </div>
   );
 }
+
+

@@ -58,8 +58,7 @@ function sheetToArray(sheet) {
 }
 
 function jsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(data));
 }
 
 function cleanupDefaultSheet() {
@@ -246,28 +245,27 @@ function addCorsHeaders(output) {
     .addHeader('Access-Control-Allow-Origin', '*')
     .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    .addHeader('Content-Type', 'application/json');
+    .addHeader('Content-Type', 'application/json')
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ======== AUTH ========
 
 function adminLogin(data) {
-  if (data.password === ADMIN_PASSWORD) {
-    var token = generateToken({
+  // No password required for admin access (hidden behind secret button)
+  var token = generateToken({
+    role: 'admin',
+    username: 'admin',
+    loginTime: new Date().toISOString()
+  });
+  return {
+    status: 'success',
+    token: token,
+    user: {
       role: 'admin',
-      username: 'admin',
-      loginTime: new Date().toISOString()
-    });
-    return {
-      status: 'success',
-      token: token,
-      user: {
-        role: 'admin',
-        username: 'admin'
-      }
-    };
-  }
-  return { status: 'error', message: 'Invalid password' };
+      username: 'admin'
+    }
+  };
 }
 
 function mentorLogin(data) {

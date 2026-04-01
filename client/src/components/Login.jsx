@@ -28,19 +28,24 @@ export default function Login({ onLogin, showToast }) {
     }
   }
 
-  function handleAdminAccess() {
+  async function handleAdminAccess() {
     // Call API for admin access
     setLoading(true);
-    adminLogin()
-      .then(result => {
+    try {
+      const result = await adminLogin();
+      if (result.status === 'success' && result.token && result.user) {
         localStorage.setItem('cr_token', result.token);
         localStorage.setItem('cr_user', JSON.stringify(result.user));
         onLogin(result.user);
-      })
-      .catch(err => {
-        showToast(err.message || 'Failed to access admin panel', 'error');
+      } else {
+        showToast('Admin access failed', 'error');
         setLoading(false);
-      });
+      }
+    } catch (err) {
+      console.error('Admin login error:', err);
+      showToast(err.message || 'Failed to access admin panel', 'error');
+      setLoading(false);
+    }
   }
 
   function handleSettingsClick() {
@@ -115,17 +120,19 @@ export default function Login({ onLogin, showToast }) {
             {showAdminButton && (
               <div 
                 className="login-role-card admin-secret-card"
-                onClick={handleAdminAccess}
+                onClick={() => !loading && handleAdminAccess()}
                 style={{
                   background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                  cursor: 'pointer'
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  transition: 'opacity 0.3s'
                 }}
               >
                 <div className="login-role-icon" style={{ color: '#ffffff' }}>
                   <Settings size={28} />
                 </div>
                 <div className="login-role-info">
-                  <h3 style={{ color: '#ffffff' }}>Admin</h3>
+                  <h3 style={{ color: '#ffffff' }}>{loading ? 'Loading...' : 'Admin'}</h3>
                   <p style={{ color: 'rgba(255,255,255,0.8)' }}>System administration</p>
                 </div>
                 <ChevronRight size={20} className="login-role-arrow" style={{ color: '#ffffff' }} />

@@ -40,16 +40,23 @@ async function request(url, options = {}) {
 }
 
 // Auth
-export const adminLogin = () => {
-  if (API_BASE.includes('script.google.com')) {
-    // Google Apps Script backend - no password needed
-    return request('', { 
-      method: 'POST', 
-      body: { action: 'adminLogin' } 
-    });
+export const adminLogin = async () => {
+  try {
+    if (API_BASE.includes('script.google.com')) {
+      // Google Apps Script backend - no password needed
+      const response = await request('', { 
+        method: 'POST', 
+        body: { action: 'adminLogin' } 
+      });
+      console.log('Admin login response:', response);
+      return response;
+    }
+    // Express backend
+    return request('/auth/admin/login', { method: 'POST', body: {} });
+  } catch (error) {
+    console.error('adminLogin error:', error);
+    throw error;
   }
-  // Express backend
-  return request('/auth/admin/login', { method: 'POST', body: {} });
 };
 
 export const mentorLogin = (mentorId) => {

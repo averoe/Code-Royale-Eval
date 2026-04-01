@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, GraduationCap, ClipboardCheck, Trophy,
-  Swords, LogOut
+  Swords, LogOut, Settings
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, user, onLogout }) {
@@ -12,6 +12,7 @@ export default function Sidebar({ isOpen, onClose, user, onLogout }) {
     { path: '/teams', label: 'Teams', icon: <Users size={18} /> },
     { path: '/mentors', label: 'Mentors', icon: <GraduationCap size={18} /> },
     { path: '/leaderboard', label: 'Leaderboard', icon: <Trophy size={18} /> },
+    { path: '/settings', label: 'Rounds', icon: <Settings size={18} /> },
   ];
 
   const mentorItems = [

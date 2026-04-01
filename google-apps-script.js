@@ -262,6 +262,18 @@ function doPost(e) {
         result = deleteScore(data);
         break;
 
+      case 'getRounds':
+        result = getRoundsData();
+        break;
+
+      case 'addRound':
+        result = addRoundData(data);
+        break;
+
+      case 'updateRound':
+        result = updateRoundData(data);
+        break;
+
       default:
         result = { status: 'error', message: 'Unknown action: ' + action };
     }
@@ -737,4 +749,111 @@ function getLeaderboard(roundFilter) {
   }
 
   return { status: 'success', data: leaderboard };
+}
+
+// ======== ROUNDS MANAGEMENT ========
+
+function getRoundsData() {
+  var sheet = getOrCreateSheet('Rounds', ['RoundNumber', 'RoundName', 'Teams', 'CreatedAt']);
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    // Return empty array if no rounds configured
+    return { status: 'success', data: [] };
+  }
+  
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  
+  var rounds = data.map(function(row) {
+    var teamsJson = row[2];
+    var teams = [];
+    try {
+      teams = typeof teamsJson === 'string' ? JSON.parse(teamsJson) : [];
+    } catch (e) {
+      teams = [];
+    }
+    return {
+      roundNumber: Number(row[0]),
+      roundName: row[1],
+      teams: teams,
+      createdAt: row[3]
+    };
+  });
+  
+  // Sort by round number
+  rounds.sort(function(a, b) { return a.roundNumber - b.roundNumber; });
+  
+  return { status: 'success', data: rounds };
+}
+
+function addRoundData(data) {
+  var sheet = getOrCreateSheet('Rounds', ['RoundNumber', 'RoundName', 'Teams', 'CreatedAt']);
+  
+  var roundNumber = Number(data.roundNumber);
+  var roundName = typeof data.roundName === 'string' ? data.roundName : (Array.isArray(data.roundName) ? data.roundName[0] : '');
+  var teams = [];
+  
+  try {
+    if (typeof data.teams === 'string') {
+      teams = JSON.parse(data.teams);
+    } else if (Array.isArray(data.teams)) {
+      teams = data.teams;
+    }
+  } catch (e) {
+    teams = [];
+  }
+  
+  if (!roundNumber || !roundName) {
+    return { status: 'error', message: 'Round number and name are required' };
+  }
+  
+  // Check if round already exists
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var numbers = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < numbers.length; i++) {
+      if (Number(numbers[i][0]) === roundNumber) {
+        return { status: 'error', message: 'Round ' + roundNumber + ' already exists' };
+      }
+    }
+  }
+  
+  sheet.appendRow([roundNumber, roundName, JSON.stringify(teams), new Date().toLocaleString()]);
+  cleanupDefaultSheet();
+  return { status: 'success', message: 'Round added' };
+}
+
+function updateRoundData(data) {
+  var sheet = getOrCreateSheet('Rounds', ['RoundNumber', 'RoundName', 'Teams', 'CreatedAt']);
+  var roundNumber = Number(data.roundNumber);
+  var roundName = typeof data.roundName === 'string' ? data.roundName : (Array.isArray(data.roundName) ? data.roundName[0] : '');
+  var teams = [];
+  
+  try {
+    if (typeof data.teams === 'string') {
+      teams = JSON.parse(data.teams);
+    } else if (Array.isArray(data.teams)) {
+      teams = data.teams;
+    }
+  } catch (e) {
+    teams = [];
+  }
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return { status: 'error', message: 'No rounds to update' };
+  }
+  
+  var numbers = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < numbers.length; i++) {
+    if (Number(numbers[i][0]) === roundNumber) {
+      var row = i + 2;
+      sheet.getRange(row, 2).setValue(roundName);
+      sheet.getRange(row, 3).setValue(JSON.stringify(teams));
+      return { status: 'success', message: 'Round updated' };
+    }
+  }
+  
+  return { status: 'error', message: 'Round not found' };
 }

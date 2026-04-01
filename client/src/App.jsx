@@ -8,6 +8,7 @@ import Mentors from './components/Mentors';
 import Scoring from './components/Scoring';
 import Leaderboard from './components/Leaderboard';
 import Login from './components/Login';
+import Settings from './components/Settings';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -106,6 +107,7 @@ function App() {
                 <Route path="/teams" element={<Teams showToast={showToast} />} />
                 <Route path="/mentors" element={<Mentors showToast={showToast} />} />
                 <Route path="/leaderboard" element={<Leaderboard showToast={showToast} user={user} />} />
+                <Route path="/settings" element={<Settings showToast={showToast} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             ) : (

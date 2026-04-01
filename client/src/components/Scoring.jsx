@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTeams, getMentors, submitScore, getScores } from '../api';
+import { getTeams, getMentors, submitScore, getScores, getRounds } from '../api';
 import { Send, ClipboardCheck, Info } from 'lucide-react';
 
 const CRITERIA = [
@@ -103,8 +103,9 @@ function getLevelColor(level) {
 export default function Scoring({ showToast, user }) {
   const [teams, setTeams] = useState([]);
   const [mentors, setMentors] = useState([]);
+  const [rounds, setRounds] = useState([]);
   const [existingScores, setExistingScores] = useState([]);
-  const [round, setRound] = useState(2); // Start from Round 2
+  const [round, setRound] = useState(null); // Will be set after rounds load
   const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedMentor, setSelectedMentor] = useState('');
   const [scores, setScores] = useState({});
@@ -118,6 +119,13 @@ export default function Scoring({ showToast, user }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    // Set default round after rounds are loaded
+    if (rounds.length > 0 && round === null) {
+      setRound(rounds[0].roundNumber);
+    }
+  }, [rounds, round]);
 
   useEffect(() => {
     // Auto-set mentor if logged in as mentor
@@ -151,10 +159,11 @@ export default function Scoring({ showToast, user }) {
 
   async function loadData() {
     try {
-      const [teamsData, mentorsData, scoresData] = await Promise.all([
+      const [teamsData, mentorsData, scoresData, roundsData] = await Promise.all([
         getTeams(),
         getMentors(),
-        getScores()
+        getScores(),
+        getRounds()
       ]);
       
       // If mentor: filter to only shortlisted teams for Final Round (round 3)
@@ -167,6 +176,7 @@ export default function Scoring({ showToast, user }) {
       setTeams(teamsData);
       setMentors(mentorsData);
       setExistingScores(scoresData);
+      setRounds(roundsData);
     } catch (err) {
       showToast('Failed to load data', 'error');
     } finally {
@@ -219,20 +229,21 @@ export default function Scoring({ showToast, user }) {
         <p>Evaluate teams based on the Code Royale criteria</p>
       </div>
 
-      {/* Round Tabs */}
+      {/* Round Tabs - Dynamic based on configured rounds */}
       <div className="round-tabs">
-        <button
-          className={`round-tab ${round === 1 ? 'active' : ''}`}
-          onClick={() => setRound(1)}
-        >
-          Round 1
-        </button>
-        <button
-          className={`round-tab ${round === 2 ? 'active' : ''}`}
-          onClick={() => setRound(2)}
-        >
-          Round 2
-        </button>
+        {rounds.length > 0 ? (
+          rounds.map(r => (
+            <button
+              key={r.roundNumber}
+              className={`round-tab ${round === r.roundNumber ? 'active' : ''}`}
+              onClick={() => setRound(r.roundNumber)}
+            >
+              {r.roundName} (#{r.roundNumber})
+            </button>
+          ))
+        ) : (
+          <p style={{ color: 'var(--text-muted)' }}>No rounds configured. Ask admin to set up rounds.</p>
+        )}
       </div>
 
       {/* Select Team & Mentor */}

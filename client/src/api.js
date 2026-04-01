@@ -320,3 +320,57 @@ export const getScores = async () => {
   return res.data || [];
 };
 
+// ======== ROUNDS MANAGEMENT ========
+
+export const getRounds = async () => {
+  if (API_BASE.includes('script.google.com')) {
+    const res = await request('', {
+      method: 'POST',
+      body: { action: 'getRounds' }
+    });
+    return res.data || [];
+  }
+  const res = await request('/rounds');
+  return res.data || [];
+};
+
+export const addRound = async (roundData) => {
+  if (API_BASE.includes('script.google.com')) {
+    const res = await request('', {
+      method: 'POST',
+      body: {
+        action: 'addRound',
+        roundName: roundData.roundName,
+        roundNumber: roundData.roundNumber,
+        teams: JSON.stringify(roundData.teams || [])
+      }
+    });
+    return res;
+  }
+  const res = await request('/rounds', {
+    method: 'POST',
+    body: roundData
+  });
+  return res;
+};
+
+export const updateRound = async (roundNumber, roundData) => {
+  if (API_BASE.includes('script.google.com')) {
+    const res = await request('', {
+      method: 'POST',
+      body: {
+        action: 'updateRound',
+        roundNumber: roundNumber,
+        roundName: roundData.roundName,
+        teams: JSON.stringify(roundData.teams || [])
+      }
+    });
+    return res;
+  }
+  const res = await request(`/rounds/${roundNumber}`, {
+    method: 'PUT',
+    body: roundData
+  });
+  return res;
+};
+

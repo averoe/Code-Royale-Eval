@@ -59,11 +59,11 @@ function sheetToArray(sheet) {
 
 function jsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON)
     .addHeader('Access-Control-Allow-Origin', '*')
     .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    .addHeader('Access-Control-Max-Age', '86400');
+    .addHeader('Access-Control-Max-Age', '86400')
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function cleanupDefaultSheet() {

@@ -9,7 +9,6 @@ export default function Login({ onLogin, showToast }) {
   const [mentors, setMentors] = useState([]);
   const [selectedMentor, setSelectedMentor] = useState('');
   const [loading, setLoading] = useState(false);
-  const [adminClicks, setAdminClicks] = useState(0);
   const [showAdminButton, setShowAdminButton] = useState(false);
 
   useEffect(() => {
@@ -49,13 +48,7 @@ export default function Login({ onLogin, showToast }) {
   }
 
   function handleSettingsClick() {
-    setAdminClicks(prev => prev + 1);
-    setTimeout(() => setAdminClicks(0), 2000); // Reset after 2 seconds
-    
-    if (adminClicks >= 2) { // 3 total clicks
-      setShowAdminButton(true);
-      setAdminClicks(0);
-    }
+    setShowAdminButton(!showAdminButton);
   }
 
   async function handleMentorLogin() {
@@ -85,7 +78,7 @@ export default function Login({ onLogin, showToast }) {
         <button
           className="admin-secret-btn"
           onClick={handleSettingsClick}
-          title={showAdminButton ? 'Admin access unlocked' : 'Click multiple times...'}
+          title={showAdminButton ? 'Hide admin access' : 'Show admin access'}
           style={{
             position: 'fixed',
             top: '20px',
@@ -94,14 +87,15 @@ export default function Login({ onLogin, showToast }) {
             height: '44px',
             borderRadius: '50%',
             border: 'none',
-            background: showAdminButton ? 'rgba(168, 85, 247, 0.8)' : 'rgba(255, 255, 255, 0.1)',
-            color: showAdminButton ? '#ffffff' : 'rgba(255, 255, 255, 0.3)',
+            background: showAdminButton ? 'rgba(168, 85, 247, 0.9)' : 'rgba(255, 255, 255, 0.1)',
+            color: showAdminButton ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'all 0.3s ease',
-            zIndex: 1000
+            zIndex: 1000,
+            boxShadow: showAdminButton ? '0 0 20px rgba(168, 85, 247, 0.5)' : 'none'
           }}
         >
           <Settings size={20} />

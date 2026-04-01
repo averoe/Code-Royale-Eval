@@ -24,6 +24,8 @@ export default function Teams({ showToast }) {
   async function loadData() {
     try {
       const [teamsData, mentorsData] = await Promise.all([getTeams(), getMentors()]);
+      console.log('Teams loaded:', teamsData);
+      console.log('First team:', teamsData[0]);
       setTeams(teamsData);
       setMentors(mentorsData);
     } catch (err) {

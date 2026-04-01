@@ -364,9 +364,18 @@ function getTeams() {
 function addTeam(data) {
   var sheet = getOrCreateSheet('Teams', ['Name', 'Domain', 'LabNumber', 'Mentor', 'IsShortlisted', 'CreatedAt']);
 
+  // FormData parameters come as arrays - need to extract first element
+  var teamName = typeof data.name === 'string' ? data.name : (Array.isArray(data.name) ? data.name[0] : '');
+  var teamDomain = typeof data.domain === 'string' ? data.domain : (Array.isArray(data.domain) ? data.domain[0] : '');
+  var teamLabNumber = typeof data.labNumber === 'string' ? data.labNumber : (Array.isArray(data.labNumber) ? data.labNumber[0] : '');
+
+  if (!teamName || !teamDomain || !teamLabNumber) {
+    return { status: 'error', message: 'Name, domain, and lab number are required' };
+  }
+
   // Check for duplicate name (normalize with trim and lowercase)
   var existing = getTeamsData();
-  var normalizedNewName = data.name.toString().trim().toLowerCase();
+  var normalizedNewName = teamName.toString().trim().toLowerCase();
   
   for (var i = 0; i < existing.length; i++) {
     if (existing[i].Name.toString().trim().toLowerCase() === normalizedNewName) {
@@ -374,7 +383,7 @@ function addTeam(data) {
     }
   }
 
-  sheet.appendRow([data.name, data.domain, data.labNumber, '', 'No', new Date().toLocaleString()]);
+  sheet.appendRow([teamName, teamDomain, teamLabNumber, '', 'No', new Date().toLocaleString()]);
   cleanupDefaultSheet();
   return { status: 'success', message: 'Team added' };
 }
@@ -464,14 +473,21 @@ function getMentorsList() {
 function addMentor(data) {
   var sheet = getOrCreateSheet('Mentors', ['Name', 'CreatedAt']);
 
+  // FormData parameters come as arrays - need to extract first element
+  var mentorName = typeof data.name === 'string' ? data.name : (Array.isArray(data.name) ? data.name[0] : '');
+  
+  if (!mentorName) {
+    return { status: 'error', message: 'Mentor name is required' };
+  }
+
   var existing = getMentorsData();
   for (var i = 0; i < existing.length; i++) {
-    if (existing[i].Name.toString().toLowerCase() === data.name.toString().toLowerCase()) {
+    if (existing[i].Name.toString().toLowerCase() === mentorName.toString().toLowerCase()) {
       return { status: 'error', message: 'Mentor already exists' };
     }
   }
 
-  sheet.appendRow([data.name, new Date().toLocaleString()]);
+  sheet.appendRow([mentorName, new Date().toLocaleString()]);
   cleanupDefaultSheet();
   return { status: 'success', message: 'Mentor added' };
 }

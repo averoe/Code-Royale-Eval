@@ -117,8 +117,14 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              {topTeams.map((entry, idx) => (
-                <div key={entry.team._id} style={{
+              {topTeams.map((entry, idx) => {
+                // Handle both GAS format (teamName, domain) and MongoDB format (team.name, team.domain)
+                const teamName = entry.teamName || entry.team?.name || 'Unknown';
+                const teamDomain = entry.domain || entry.team?.domain || '';
+                const teamKey = entry.team?._id || teamName || idx;
+                
+                return (
+                <div key={teamKey} style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-md)',
@@ -129,8 +135,8 @@ export default function Dashboard() {
                 }}>
                   <span className={`rank-badge rank-${idx < 3 ? idx + 1 : 'other'}`}>{idx + 1}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{entry.team.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{entry.team.domain}</div>
+                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{teamName}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{teamDomain}</div>
                   </div>
                   <div style={{
                     fontWeight: 800,
@@ -140,7 +146,8 @@ export default function Dashboard() {
                     WebkitTextFillColor: 'transparent'
                   }}>{entry.totalScore}/200</div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -163,8 +170,14 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              {recentScores.map(score => (
-                <div key={score._id} style={{
+              {recentScores.map((score, idx) => {
+                // Handle both GAS format (teamName, mentorName) and MongoDB format (team, mentor objects)
+                const teamName = score.teamName || score.team?.name || 'Unknown';
+                const mentorName = score.mentorName || score.mentor?.name || 'Unknown';
+                const scoreKey = score._id || teamName + score.round + idx;
+                
+                return (
+                <div key={scoreKey} style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-md)',
@@ -173,20 +186,21 @@ export default function Dashboard() {
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)'
                 }}>
-                  <span className={`card-badge ${score.round === 1 ? 'badge-violet' : 'badge-cyan'}`}>
+                  <span className={`card-badge ${score.round === 1 || score.round === '1' ? 'badge-violet' : 'badge-cyan'}`}>
                     R{score.round}
                   </span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{score.team?.name || 'Unknown'}</div>
+                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{teamName}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      by {score.mentor?.name || 'Unknown'}
+                      by {mentorName}
                     </div>
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--accent-emerald)' }}>
                     {score.totalScore}/100
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

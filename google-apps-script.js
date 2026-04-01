@@ -59,7 +59,11 @@ function sheetToArray(sheet) {
 
 function jsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    .addHeader('Access-Control-Max-Age', '86400');
 }
 
 function cleanupDefaultSheet() {
@@ -164,7 +168,12 @@ function doGet(e) {
 // ======== OPTIONS HANDLER (CORS Preflight) ========
 
 function doOptions(e) {
-  return jsonResponse({ status: 'ok' });
+  return ContentService.createTextOutput('')
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    .addHeader('Access-Control-Max-Age', '86400')
+    .setMimeType(ContentService.MimeType.TEXT_PLAIN);
 }
 
 // ======== POST HANDLER ========

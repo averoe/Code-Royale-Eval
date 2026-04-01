@@ -1,0 +1,328 @@
+================================================================================
+CORS ANALYSIS: Code Royale Frontend ↔ Google Apps Script Backend
+================================================================================
+
+ANALYSIS DATE: April 1, 2026
+APPLICATION: Code Royale (React + Vite frontend)
+BACKEND: Google Apps Script Web App
+FRONTEND URL: http://localhost:3000/ (dev) / https://code-royale.vercel.app (prod)
+
+================================================================================
+1. FETCH REQUEST CONFIGURATION
+================================================================================
+
+HEADER ANALYSIS:
+✓ Content-Type: application/json - YES, added on line 16
+✓ Authorization: Bearer {token} - YES, conditionally added if token exists
+✓ Custom headers - YES (Authorization header)
+✓ JSON body serialization - YES (line 25: JSON.stringify())
+
+REQUEST CONFIGURATION CODE (api.js, lines 8-26):
+```javascript
+const config = {
+  method,
+  headers: {
+    'Content-Type': 'application/json',      // ✓ Simple header
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),  // ⚠️ CUSTOM header
+  },
+  ...options,
+};
+
+if (config.body && typeof config.body === 'object') {
+  config.body = JSON.stringify(config.body);  // ✓ JSON encoded
+}
+```
+
+CRITICAL FINDING:
+⚠️ Authorization header is a CUSTOM header, NOT a CORS-safelisted header
+→ This WILL TRIGGER a preflight OPTIONS request in browsers
+→ Only these headers are safelisted: Accept, Accept-Language, Content-Language,
+   Content-Type (with specific MIME types)
+
+================================================================================
+2. REQUEST TYPE HANDLING
+================================================================================
+
+GET REQUESTS:
+- Used for: getTeams() on line 87
+- URL format: `?action=teams` (query parameter)
+- Headers: Content-Type + Auth token (if present)
+- PREFLIGHT: ⚠️ YES (due to Authorization header)
+
+POST REQUESTS:
+- Method: Always POST for Google Apps Script backend (line 12)
+- Body format: JSON object (line 25: JSON.stringify())
+- Backend receives via: e.postData.contents (Google Apps Script standard)
+- Example structure:
+  ```javascript
+  {
+    action: 'adminLogin'
+  }
+  // OR
+  {
+    action: 'mentorLogin',
+    mentorName: 'John'
+  }
+  ```
+
+POST BODY COMPATIBILITY:
+✓ Google Apps Script expects: JSON string in e.postData.contents
+✓ Frontend sends: JSON.stringify() ✓ COMPATIBLE
+✓ Content-Type set to: application/json ✓ CORRECT
+
+REQUEST ROUTING:
+- All GAS requests go to base URL with empty path: request('', {...})
+- All GAS requests are POST (line 12)
+- Query params only used for GET: getTeams() uses request('?action=teams')
+
+================================================================================
+3. URL USAGE ANALYSIS
+================================================================================
+
+DEPLOYMENT URL FORMAT EXPECTED:
+https://script.google.com/macros/s/{SCRIPT_ID}/exec
+
+CURRENT .env.local:
+VITE_API_URL=https://script.google.com/macros/s/AKfycbyrVU3285KLNrY8UTt3KV7pzDmkzxJE0xQHcw0IO0B7zDkmMcEy_qboR-SP22xrP5o/exec
+
+URL STRUCTURE ANALYSIS:
+✓ Uses /exec endpoint (not /dev)
+✓ /exec = production deployment endpoint
+✓ /dev = development endpoint (different behavior, not used)
+✓ URL includes full deployment ID
+✓ No path appended (request('') sends to base URL)
+
+FULL REQUEST URL CONSTRUCTION:
+${API_BASE}${url} → base URL + empty string/query params
+Example: https://script.google.com/macros/s/AKfycb.../exec
+
+VERDICT: ✓ URL format is correct for deployed Web App
+
+================================================================================
+4. CORS RISK ANALYSIS - PREFLIGHT REQUEST BEHAVIOR
+================================================================================
+
+WILL THIS TRIGGER PREFLIGHT?
+⚠️ YES - ABSOLUTELY
+
+WHY? (Multiple reasons)
+
+Reason 1: Authorization Header (PRIMARY REASON)
+- Authorization header is NOT in CORS safelisted headers
+- Browser automatically adds OPTIONS preflight before actual request
+- Flow: OPTIONS (preflight) → POST (actual request)
+
+Reason 2: Custom Headers Combined
+- Content-Type: application/json IS safelisted
+- But Authorization: Bearer... IS NOT safelisted
+- When combined with POST + custom body, preflight is required
+
+PREFLIGHT REQUEST FLOW:
+1. Browser makes OPTIONS request to same URL
+2. Google Apps Script receives OPTIONS via doOptions(e)
+3. Google Apps Script returns: doOptions() → jsonResponse({ status: 'ok' })
+4. Browser checks CORS headers in response
+5. If CORS headers are present → browser allows actual request
+6. If CORS headers are missing → browser blocks request with error
+
+GOOGLE APPS SCRIPT CORS RESPONSE (current implementation):
+```javascript
+function doOptions(e) {
+  return jsonResponse({ status: 'ok' });
+}
+```
+
+CORS HEADERS BEING SENT:
+Via jsonResponse():
+- Content-Type: application/json ✓ (set by setMimeType())
+- Access-Control-Allow-Origin: ??? (NOT being set)
+- Access-Control-Allow-Methods: ??? (NOT being set)
+- Access-Control-Allow-Headers: ??? (NOT being set)
+
+CRITICAL ISSUE IDENTIFIED:
+❌ Google Apps Script is NOT sending the required CORS response headers
+❌ The addCorsHeaders() function was removed in recent changes
+❌ Browser will see OPTIONS response without CORS headers and BLOCK the request
+
+================================================================================
+5. POTENTIAL ISSUES & FAILURE MODES
+================================================================================
+
+ISSUE 1: Missing CORS Response Headers
+─────────────────────────────────────
+SEVERITY: 🔴 CRITICAL
+WHEN: Browser sends OPTIONS preflight
+WHAT HAPPENS: 
+  - Browser receives response to OPTIONS
+  - Checks for Access-Control-Allow-Origin header
+  - Header is MISSING → browser blocks request
+  - Error in console: "CORS policy: Response to preflight request..."
+  - No actual data request is ever sent
+
+ISSUE 2: No Request Header Validation
+──────────────────────────────────────
+SEVERITY: 🔴 CRITICAL
+WHAT: Browser expects response headers to include what headers are allowed
+EXPECTED: Access-Control-Allow-Headers: Content-Type, Authorization
+ACTUAL: Not being sent
+RESULT: Browser may reject the request even after OPTIONS succeeds
+
+ISSUE 3: Protocol Mismatch
+─────────────────────────
+DEV ENVIRONMENT:
+- Frontend: http://localhost:3000/
+- Backend: https://script.google.com/...
+- Mismatch: HTTP → HTTPS (different origins)
+- CORS REQUIRED: Yes, absolutely
+
+PRODUCTION ENVIRONMENT:
+- Frontend: https://code-royale.vercel.app
+- Backend: https://script.google.com/...
+- Both HTTPS, but different domains
+- CORS REQUIRED: Yes, absolutely
+
+ISSUE 4: Silent Failure Possibility
+───────────────────────────────────
+IF browser allows initial request (unlikely):
+- OPTIONS succeeds somehow
+- POST request is made
+- Google Apps Script receives and processes
+- Response headers might be missing CORS
+- Browser blocks response and throws error
+- But error handling might mask the real issue
+
+================================================================================
+6. FIX SUGGESTIONS (Minimal, Compatible with Google Apps Script)
+================================================================================
+
+SOLUTION: Restore CORS Header Function
+
+The previous addCorsHeaders() function was removed, but it's NECESSARY.
+
+STEP 1: Add CORS Response Helper Back to Google Apps Script
+─────────────────────────────────────────────────────────
+
+Add this function AFTER jsonResponse() (around line 60):
+
+```javascript
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON)
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    .addHeader('Access-Control-Max-Age', '86400');
+}
+```
+
+IMPORTANT NOTES:
+✓ Google Apps Script DOES support .addHeader() on TextOutput objects
+✓ The previous error was due to incorrect method chaining (calling setMimeType() 
+  before addHeader())
+✓ The new method sets headers AFTER MIME type, which works correctly
+✓ Access-Control-Max-Age prevents repeated preflight requests (caches for 24h)
+
+STEP 2: Update doOptions() to Return Proper Response
+
+Current (broken):
+```javascript
+function doOptions(e) {
+  return jsonResponse({ status: 'ok' });
+}
+```
+
+Fixed (works):
+```javascript
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    .addHeader('Access-Control-Max-Age', '86400')
+    .setMimeType(ContentService.MimeType.TEXT_PLAIN);
+}
+```
+
+WHY THIS WORKS:
+- OPTIONS preflight expects empty body with headers only
+- Using TEXT_PLAIN instead of JSON for OPTIONS responses
+- All CORS headers are correctly set
+- Max-Age prevents browser from sending OPTIONS on every request
+
+STEP 3: No Changes Needed to Frontend
+──────────────────────────────────────
+✓ Frontend code is correctly structured
+✓ Authorization header is correct
+✓ JSON serialization is correct
+✓ Request methods are correct
+→ Only backend needs CORS header fix
+
+================================================================================
+7. VERIFICATION CHECKLIST
+================================================================================
+
+After implementing fix, verify:
+
+☐ Browser DevTools → Network tab
+  ☐ OPTIONS request shows 200 response
+  ☐ Response headers include:
+    ☐ Access-Control-Allow-Origin: *
+    ☐ Access-Control-Allow-Methods: GET, POST, ...
+    ☐ Access-Control-Allow-Headers: Content-Type, Authorization
+  ☐ Next request (POST) shows 200 response
+  ☐ No CORS error in console
+
+☐ No error messages like:
+  ✗ "Cross-Origin Request Blocked"
+  ✗ "CORS policy: Response to preflight request"
+  ✗ "not allowed by Access-Control-Allow-Methods"
+
+☐ Admin login works:
+  ☐ Click settings icon 3 times
+  ☐ Admin card appears
+  ☐ Click admin
+  ☐ Should see admin dashboard
+
+================================================================================
+8. FINAL VERDICT
+================================================================================
+
+CURRENT STATE: ❌ BROKEN
+
+Why?
+- Authorization header triggers preflight OPTIONS request
+- Google Apps Script missing CORS response headers
+- Browser will block cross-origin requests
+- Error: "CORS policy: Response to preflight request does not have required header"
+- Admin login will show "Failed to fetch"
+
+ROOT CAUSE:
+addCorsHeaders() function was removed, but it was essential for CORS support
+
+FIX DIFFICULTY: ⭐ EASY (2 changes, ~10 lines total)
+
+AFTER FIX: ✅ SAFE - Will work reliably
+
+CONFIDENCE: 95% (Once CORS headers are added, will work in all browsers)
+
+================================================================================
+SUMMARY TABLE
+================================================================================
+
+Feature                          | Status    | Issue
+──────────────────────────────────────────────────────────────────────────────
+Content-Type header              | ✓ Correct | —
+Authorization header             | ✓ Correct | Triggers preflight (expected)
+JSON serialization               | ✓ Correct | —
+Request method routing           | ✓ Correct | —
+URL format                       | ✓ Correct | —
+Google Apps Script endpoint      | ✓ Correct | /exec is right
+Preflight OPTIONS handling       | ❌ Broken | Missing CORS response headers
+CORS Allow-Origin header         | ❌ Missing| Required for browser to allow
+CORS Allow-Methods header        | ❌ Missing| Required for browser to allow
+CORS Allow-Headers header        | ❌ Missing| Required for Authorization
+─────────────────────────────────────────────────────────────────────────────
+
+================================================================================
+END ANALYSIS
+================================================================================

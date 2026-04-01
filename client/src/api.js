@@ -16,13 +16,20 @@ async function request(url, options = {}) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Don't send Authorization header to avoid CORS preflight
     },
     ...options,
   };
   
   if (config.body && typeof config.body === 'object') {
     config.body = JSON.stringify(config.body);
+  }
+  
+  // Include token in body instead of headers for GAS backend
+  if (isGasBackend && token && config.body) {
+    const bodyObj = JSON.parse(config.body);
+    bodyObj.token = token;
+    config.body = JSON.stringify(bodyObj);
   }
   
   try {
@@ -79,7 +86,8 @@ export const verifyToken = (token) => {
     });
   }
   return request('/auth/verify', { 
-    headers: { Authorization: `Bearer ${token}` } 
+    method: 'POST',
+    body: { token }
   });
 };
 

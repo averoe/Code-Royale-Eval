@@ -58,12 +58,8 @@ function sheetToArray(sheet) {
 }
 
 function jsonResponse(data) {
-  var output = ContentService.createTextOutput(JSON.stringify(data));
-  output.addHeader('Access-Control-Allow-Origin', '*');
-  output.addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  output.addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  output.setMimeType(ContentService.MimeType.JSON);
-  return output;
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function cleanupDefaultSheet() {
@@ -168,12 +164,8 @@ function doGet(e) {
 // ======== OPTIONS HANDLER (CORS Preflight) ========
 
 function doOptions(e) {
-  var output = ContentService.createTextOutput('');
-  output.addHeader('Access-Control-Allow-Origin', '*');
-  output.addHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  output.addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  output.setMimeType(ContentService.MimeType.TEXT_PLAIN);
-  return output;
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT_PLAIN);
 }
 
 // ======== POST HANDLER ========
